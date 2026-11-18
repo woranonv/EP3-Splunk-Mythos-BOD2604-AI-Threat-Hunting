@@ -85,11 +85,39 @@ Splunk ES 8.8
 
 ## Deployment Guide
 
-### Step 1 - Hunt telemetry on CIM
+Hunt telemetry is assumed to be in Splunk already and CIM-compliant (Web, Authentication, Change, Network_Traffic, optionally Endpoint), with the data models accelerated. See [cim/README.md](cim/README.md) for what the templates expect.
 
-Onboard web, OS authentication and network flow data for the servers you need to triage and map it to CIM. See [cim/README.md](cim/README.md) for the sources, the `access_combined` web mapping, and a check search. Accelerate the data models.
+### Step 1 - Splunk MCP Server
 
-### Step 2 - Create the hunt templates (saved searches)
+Install Splunk MCP Server 2.0, create an MCP token for the agent user, and review the guardrails (defaults are fine for this toolbox: 60 s timeout, 100 default rows, 600 calls / 60 min). One hunt is about 12 calls of 1-4 seconds each.
+
+![MCP guardrails](images/mcp-guardrails.png)
+
+### Step 2 - AI Toolkit: LLM and MCP connections
+
+- **LLM connection:** OpenAI, model gpt-5.2 (or newer), request timeout 600, maximum result rows 50.
+- **MCP connection** `Splunk_cloud`: MCP - Splunk, with the MCP token from Step 1.
+
+![AI Toolkit connections](images/aitk-connections.png)
+![LLM connection](images/aitk-llm-connection.png)
+
+### Step 3 - Create the Hunting agent
+
+Follow [agent/agent_settings.md](agent/agent_settings.md):
+
+1. System prompt: [agent/system_prompt.txt](agent/system_prompt.txt)
+2. Four skills from [agent/skills/](agent/skills/) (description + instructions each)
+3. MCP connection with **only** the 5 read-only tools
+4. Temperature 0, max tokens 50000, reasoning NONE, agent timeout 600
+
+![Skills](images/aitk-skills-list.png)
+![Hunting agent](images/aitk-agents.png)
+![Agent settings](images/aitk-agent-settings.png)
+![Agent skills and invocation settings](images/aitk-skills.png)
+
+### Step 4 - Create the hunt templates (saved searches)
+
+The HuntToolbox skill calls these saved searches by name: they turn each step of the agent's ATT&CK hypothesis into a tstats search on the CIM data models. Create them before the first hunt.
 
 13 tokenized saved searches, shared globally (app `search`, read: everyone):
 
@@ -124,35 +152,7 @@ python3 create_saved_searches.py                 # --dry-run to print only
 
 Test: `| savedsearch bod_hunt_cov1 host=<host> ip=<ip> et=-7d@h lt=now`
 
-### Step 3 - Splunk MCP Server
-
-Install Splunk MCP Server 2.0, create an MCP token for the agent user, and review the guardrails (defaults are fine for this toolbox: 60 s timeout, 100 default rows, 600 calls / 60 min). One hunt is about 12 calls of 1-4 seconds each.
-
-![MCP guardrails](images/mcp-guardrails.png)
-
-### Step 4 - AI Toolkit: LLM and MCP connections
-
-- **LLM connection:** OpenAI, model gpt-5.2 (or newer), request timeout 600, maximum result rows 50.
-- **MCP connection** `Splunk_cloud`: MCP - Splunk, with the MCP token from Step 3.
-
-![AI Toolkit connections](images/aitk-connections.png)
-![LLM connection](images/aitk-llm-connection.png)
-
-### Step 5 - Create the Hunting agent
-
-Follow [agent/agent_settings.md](agent/agent_settings.md):
-
-1. System prompt: [agent/system_prompt.txt](agent/system_prompt.txt)
-2. Four skills from [agent/skills/](agent/skills/) (description + instructions each)
-3. MCP connection with **only** the 5 read-only tools
-4. Temperature 0, max tokens 50000, reasoning NONE, agent timeout 600
-
-![Skills](images/aitk-skills-list.png)
-![Hunting agent](images/aitk-agents.png)
-![Agent settings](images/aitk-agent-settings.png)
-![Agent skills and invocation settings](images/aitk-skills.png)
-
-### Step 6 - Dashboard Part 3
+### Step 5 - Dashboard Part 3
 
 Import [dashboard/bod2604_dashboard_v88.json](dashboard/bod2604_dashboard_v88.json) (Dashboard Studio). It is the EP2 dashboard (ES 8.8 version) with Part 3 added:
 
@@ -177,7 +177,7 @@ The panel 3.3 search:
 ![Part 3 inputs and 3.1 Target](images/part3-dashboard.png)
 ![3.2 Threat intel](images/3.2-threat-intel.png)
 
-### Step 7 - Run a hunt
+### Step 6 - Run a hunt
 
 Pick a host, choose **Last 7 days**, set **Run AI agent = Yes**. A hunt takes 1-4 minutes.
 
