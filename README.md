@@ -45,6 +45,14 @@ The agent never writes SPL. Every hunt template is a Splunk saved search; the ag
 
 ---
 
+## Demo
+
+[![Watch the demo](images/3.3-ai-triage-report.png)](https://github.com/woranonv/EP3-Splunk-Mythos-BOD2604-AI-Threat-Hunting/releases/download/v1.0/EP3-demo-agent-launchpad.mp4)
+
+**[Demo video: BOD 26-04 dashboard Part 3 + Hunting agent in AITK Agent Launchpad (4:48, MP4)](https://github.com/woranonv/EP3-Splunk-Mythos-BOD2604-AI-Threat-Hunting/releases/download/v1.0/EP3-demo-agent-launchpad.mp4)** - also on the [Releases page](https://github.com/woranonv/EP3-Splunk-Mythos-BOD2604-AI-Threat-Hunting/releases).
+
+---
+
 ## Architecture
 
 ```
