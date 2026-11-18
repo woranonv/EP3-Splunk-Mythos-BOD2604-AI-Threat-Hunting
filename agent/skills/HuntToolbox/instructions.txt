@@ -1,0 +1,71 @@
+HUNT TOOLBOX - MITRE ATT&CK aligned, behaviour-based hunting on CIM data models (no baseline needed)
+
+HOW TO USE
+- Every template is a saved search in Splunk. Run it with splunk_run_query using EXACTLY the call line shown, replacing the token values. Do NOT write the SPL yourself and do NOT add other commands to the call.
+- Token values: host = hostname, ip = internal IP, et = earliest, lt = latest (from the prompt, for example et=-7d@h lt=now), attackers = comma-separated attacker IPs with no spaces (or none), accounts = comma-separated new account names with no spaces (or none).
+- Pass every token listed for the template. Never put quotes or spaces inside a token value.
+- Always run COV-1 first. Then run the templates that test each step of your hypothesis, in attack order. Skip templates that do not fit and say why.
+- Result per template: SUPPORTED (suspicious rows found), REFUTED (the data model has data for the host but 0 rows), NO TELEMETRY (COV-1 shows no data for that data model).
+- Times in results are already formatted strings: copy them exactly.
+
+INTEL | VulnIntelProfile step 1 | lookups
+| savedsearch bod_hunt_intel host=<HOST>
+
+COV-1 | Coverage (before hunting) | all data models
+| savedsearch bod_hunt_cov1 host=<HOST> ip=<IP> et=<EARLIEST> lt=<LATEST>
+HOW TO READ COVERAGE:
+- Web, Authentication, Network_Traffic, Endpoint.Processes: 0 events = GAP (no telemetry from that source).
+- Change: account changes come from the SAME OS auth logs as Authentication. If Authentication has data, Change is COVERED even with 0 events (0 just means no accounts were changed -> PER-2 is REFUTED, not NO TELEMETRY). Change is a GAP only when Authentication is also 0.
+
+=== TA0001 INITIAL ACCESS ===
+IA-1 | T1190 Exploit Public-Facing Application | Web - bursts of server errors (5xx) from one source.
+| savedsearch bod_hunt_ia1 host=<HOST> et=<EARLIEST> lt=<LATEST>
+Every Web.src returned is an ATTACKER IP.
+
+IA-2 | T1078 Valid Accounts (login from outside) | Authentication - logins from non-private addresses.
+| savedsearch bod_hunt_ia2 host=<HOST> et=<EARLIEST> lt=<LATEST>
+
+=== TA0002 EXECUTION ===
+EXE-1 | T1059 Command and Scripting Interpreter (commands sent through the web) | Web
+| savedsearch bod_hunt_exe1 host=<HOST> et=<EARLIEST> lt=<LATEST>
+
+EXE-2 | T1059 shell started by a service process | Endpoint.Processes - only if COV-1 shows Endpoint data, otherwise NO TELEMETRY.
+| savedsearch bod_hunt_exe2 host=<HOST> et=<EARLIEST> lt=<LATEST>
+
+=== TA0003 PERSISTENCE ===
+PER-1 | T1505.003 Web Shell | Web - script files that answered 200 to only ONE client.
+| savedsearch bod_hunt_per1 host=<HOST> et=<EARLIEST> lt=<LATEST>
+Strong only if the single client is also an ATTACKER IP from IA-1.
+
+PER-2 | T1136 Create Account / T1098 Account Manipulation | Change
+| savedsearch bod_hunt_per2 host=<HOST> et=<EARLIEST> lt=<LATEST>
+Every created account name (All_Changes.object) is a NEW ACCOUNT.
+
+PER-3 | T1078 Valid Accounts (newly created account used) | Authentication
+| savedsearch bod_hunt_per3 host=<HOST> et=<EARLIEST> lt=<LATEST> accounts=<NEW_ACCOUNTS or none>
+
+=== TA0004 PRIVILEGE ESCALATION ===
+PE-1 | T1068 / T1548.003 Sudo | raw linux_secure - a service account (apache, nginx, www-data, node, tomcat) running commands as root.
+| savedsearch bod_hunt_pe1 host=<HOST> et=<EARLIEST> lt=<LATEST>
+
+=== TA0008 LATERAL MOVEMENT ===
+LM-1 | T1021 Remote Services | Network_Traffic + Authentication - admin-port connections or logins from this host to other internal hosts.
+| savedsearch bod_hunt_lm1 ip=<IP> et=<EARLIEST> lt=<LATEST>
+
+=== TA0011 COMMAND AND CONTROL + TA0010 EXFILTRATION ===
+C2-1 / EXF-1 | T1571, T1071, T1041 | Network_Traffic - outbound to public addresses flagged by behaviour (unusual port, >=100 MB, or attacker IP).
+| savedsearch bod_hunt_c2exf ip=<IP> et=<EARLIEST> lt=<LATEST> attackers=<ATTACKER_IPS or none>
+Repeated connections to a public IP on 80/443 alone are normal (updates, CDN, cloud APIs) and are NOT a C2 finding unless the destination is an attacker IP.
+
+NOT COVERED IN THIS TOOLBOX (report as "not tested" if the hypothesis needs them)
+TA0007 Discovery, TA0006 Credential Access, TA0005 Defense Evasion, TA0009 Collection - these need Endpoint / file-monitoring data.
+
+GUARDED PIVOTS (maximum 2, your own follow-up searches)
+- Raw OS log overview (service crashes, cron, user tools) for the host:
+| savedsearch bod_hunt_pivot_raw host=<HOST> et=<EARLIEST> lt=<LATEST>
+- Or a tstats search you write yourself, ONLY with these CIM fields, always with where index=bod_hunt, summariesonly=t and earliest/latest. Use only tstats, where, stats, sort, head and table: NEVER use eval (it breaks the tool call). Leave times as they come; write n/a if a time is not a formatted string.
+  Web: Web.src, Web.dest, Web.status, Web.uri_path, Web.url, Web.http_method, Web.http_user_agent, Web.bytes
+  Authentication: Authentication.src, Authentication.dest, Authentication.user, Authentication.action, Authentication.app
+  Change: All_Changes.dest, All_Changes.user, All_Changes.object, All_Changes.object_category, All_Changes.action
+  Network_Traffic: All_Traffic.src, All_Traffic.dest, All_Traffic.dest_port, All_Traffic.bytes, All_Traffic.action
+  Endpoint.Processes: Processes.dest, Processes.user, Processes.process_name, Processes.process, Processes.parent_process_name

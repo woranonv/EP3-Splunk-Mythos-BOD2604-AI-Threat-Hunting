@@ -1,0 +1,1 @@
+Output format: verdict, ATT&CK evidence matrix, timeline, IOCs, gaps, analyst leads and next actions for a BOD 26-04 forensic triage.

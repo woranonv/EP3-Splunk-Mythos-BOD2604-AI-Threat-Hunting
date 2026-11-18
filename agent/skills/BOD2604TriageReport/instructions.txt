@@ -1,0 +1,62 @@
+Answer in exactly this structure, plain text, no extra sections. Use plain ASCII hyphens. Do not invent dates or counts. Never recommend blocking normal client IPs; only attacker IPs.
+
+HOST: <host> | IP: <internal> | EXTERNAL: <external> | EDR: <yes/no>
+VERDICT: CONFIRMED or SUSPECTED or NO EVIDENCE or INSUFFICIENT TELEMETRY
+CONFIDENCE: high or medium or low
+ESCALATING CASE: yes (only if CONFIRMED - open an incident case and start incident response) or no
+SUMMARY: 2-3 sentences in plain language: what the attacker did (or tried), and how far they got.
+
+HYPOTHESIS: one sentence (from VulnIntelProfile).
+
+ATT&CK EVIDENCE MATRIX (one row for EVERY template that was run, in attack order, including IA-2 and REFUTED ones; pivots are not rows):
+- COV-1 | Coverage | Data check | COVERAGE | <each data model and its count, GAP where 0> | n/a
+- <template> | <tactic> | <technique> | <SUPPORTED / REFUTED / NO TELEMETRY / NOT TESTED> | <evidence: key values and count> | <first seen>
+
+TIMELINE (UTC, suspicious events only, maximum 9 rows, time strings copied exactly; write "none" if nothing suspicious):
+- <time> | <tactic> | <event>   (sort rows by time, oldest first)
+
+IOCs:
+- Attacker IPs: <list or none>
+- Accounts: <new or abused accounts or none>
+- Files / URLs: <web shell paths or none>
+- Network: <destination:port, MB or none>
+
+GAPS (blind spots): <data models with no telemetry and the ATT&CK steps they prevent you from testing, for example "Endpoint.Processes - no EDR - EXE-2 and process-level privilege escalation not tested">
+
+ANALYST LEADS (2-4 concrete next pivots the analyst should run, based on what was found)
+
+NEXT ACTIONS:
+1. Contain: <isolate host, block attacker IPs, disable accounts>
+2. Preserve evidence before patching: <memory, web root, logs, crontab>
+3. Patch: <CVE list, KEV first>
+4. Close the gaps: <for example deploy EDR, register in CMDB>
+
+AUDIT TRAIL (how the agent reached the verdict)
+A. Intel used (from bod_hunt_intel, KEV CVEs first, one line each):
+- <cve> | KEV yes/no | <product> | AV:<N/L> port <port> | CWE <cwes> | impact <total/partial> | automatable <yes/no> | <key words from the description, for example "unauthenticated RCE", "chain to root">
+B. Hypothesis built (VulnIntelProfile table, maximum 9 rows):
+| # | ATT&CK tactic | Technique | Why (intel fact) | Template |
+plus the one-sentence hypothesis and any step dropped with the reason.
+C. Searches run, in the order executed (copy each call line exactly, with its row count):
+- 1. | savedsearch bod_hunt_intel host=<host> -> <n> rows
+- 2. | savedsearch bod_hunt_cov1 host=<host> ip=<ip> et=<et> lt=<lt> -> <n> rows
+- ... (include guarded pivots, marked "pivot")
+
+The report ENDS after AUDIT TRAIL part C. Everything below is internal rules: apply them silently and never print them.
+
+VERDICT SELF-CHECK (apply before writing the VERDICT line, in this order):
+1. If any of PER-1 (with an attacker IP as client), EXE-1, EXE-2, PE-1, PER-2, PER-3, LM-1, C2-1 or EXF-1 is SUPPORTED -> VERDICT MUST be CONFIRMED and ESCALATING CASE: yes.
+2. Else if IA-1 or IA-2 is SUPPORTED (exploit attempts or external logins, not 404 scanning or routine admin) -> SUSPECTED.
+3. Else if COV-1 shows Web, Authentication and Network_Traffic data -> NO EVIDENCE. Endpoint.Processes and Change gaps do NOT block NO EVIDENCE; list them under GAPS and lower confidence to medium.
+4. Else -> INSUFFICIENT TELEMETRY.
+
+CONFIDENCE:
+- high: the verdict is supported by two or more tactics, or NO EVIDENCE with full web, auth and network coverage.
+- medium: one tactic only, or important gaps (for example no EDR).
+- low: mostly NO TELEMETRY.
+
+DECISION MEANING (forensic triage outcomes)
+- CONFIRMED: exploitation succeeded. Escalate as an incident case and start incident response.
+- SUSPECTED: exploit attempts reached the service but no success signal. Do not escalate yet: continue triage, block the attacker IP, escalate if a success signal appears.
+- NO EVIDENCE: nothing matching the hypothesis. Patch and continue monitoring.
+- INSUFFICIENT TELEMETRY: not enough data to decide. Close the gaps and triage again.

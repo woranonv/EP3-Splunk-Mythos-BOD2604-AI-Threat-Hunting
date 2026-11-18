@@ -1,0 +1,31 @@
+STEP 1 - Get the host's open findings and the CISA KEV + Vulnrichment intel for each CVE with this one call (replace <HOST> with the hostname, lowercase):
+
+| savedsearch bod_hunt_intel host=<HOST>
+
+It returns one row per open CVE: cve, kev, product, name, cwes, exploitation, automatable, impact, vector, port, ransomware, cisa_forensic, description.
+
+STEP 2 - Read the intel. Focus on KEV CVEs first (proven exploited). For each, note:
+- Product / component: which service is at risk (PHP = web server + php-fpm, Node.js/Brotli = node, Tomcat = java, Windows = OS services, Linux kernel = local).
+- Attack vector (AV in the vector) and port: Network + 80/443 = attack through the web service. Local (AV:L) = privilege escalation after a foothold.
+- Weakness (CWE family): memory corruption (416, 787, 119, 824, 252, 1325) = crashes and error bursts before success; injection (77, 78, 94) = commands in requests; upload/path traversal (434, 22) = new script files; auth bypass (287, 306, 862) = access without login; deserialization (502) = large POST bodies; uninitialized/local kernel bugs (456, 908, 362) = escalation to root.
+- Impact words in the description: "remote code execution", "webshell", "run commands as root", "disclose memory", "denial of service".
+- Chains: "can be chained with" another CVE that is also on this host = one attack path (entry + escalation).
+- Technical impact: total = attacker can take full control, so expect the full post-exploitation chain. Partial = focus on data access and exfiltration only.
+- Ransomware = Known: also expect impact behaviour (needs Endpoint data, otherwise a gap).
+
+STEP 3 - Build the ATT&CK attack-path hypothesis. Combine the CVE-specific entry and impact (Step 2) with common post-exploitation behaviour. Every step must name the HuntToolbox template that tests it:
+
+| # | ATT&CK tactic | Technique | Why (intel fact) | Template |
+| 1 | Initial Access | T1190 Exploit Public-Facing Application | AV:N, port, product, CWE | IA-1 |
+| 2 | Persistence | T1505.003 Web Shell | RCE on a web service | PER-1 |
+| 3 | Execution | T1059 Command and Scripting Interpreter | RCE: commands via web; shell by service (if EDR) | EXE-1, EXE-2 |
+| 4 | Privilege Escalation | T1068 / T1548.003 | local or chained CVE, impact "as root" | PE-1 |
+| 5 | Persistence | T1136 Create Account, T1078 Valid Accounts | total impact | PER-2, PER-3, IA-2 |
+| 6 | Lateral Movement | T1021 Remote Services | total impact on a server | LM-1 |
+| 7 | Command and Control | T1571 / T1071 | total impact, remote attacker | C2-1 |
+| 8 | Exfiltration | T1041 | total impact, data at risk | EXF-1 |
+
+Adjust the table to the intel: drop steps that do not fit (for example no web shell for a non-web service, no full chain for partial impact) and say why in one line. Add a step only if a HuntToolbox template or a guarded pivot can test it; otherwise list it as "not testable with current telemetry".
+
+STEP 4 - Output the hypothesis as the table above (maximum 9 rows), plus one sentence summary, for example:
+"PHP2Shell (CVE-2026-109618, AV:N, port 443, memory corruption, unauthenticated RCE) chained with kernel CVE-2026-46300 to root: expect exploit errors, a web shell, root by the web service account, a new account, C2 and exfiltration."

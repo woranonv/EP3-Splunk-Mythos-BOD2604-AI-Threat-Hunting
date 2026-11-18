@@ -1,0 +1,81 @@
+"""BOD 26-04 hunt templates as tokenized saved searches.
+
+The agent calls them with:  | savedsearch <name> host=<h> ip=<ip> et=<earliest> lt=<latest> [attackers=a,b] [accounts=x,y]
+so the request it sends contains no eval / quotes - the SPL lives in Splunk.
+Hunt index: bod_hunt (production: replace with your hunt index or a macro).
+"""
+
+IDX = "bod_hunt"
+PRIV = '"10.*","172.16.*","172.17.*","172.18.*","172.19.*","172.20.*","172.21.*","172.22.*","172.23.*","172.24.*","172.25.*","172.26.*","172.27.*","172.28.*","172.29.*","172.30.*","172.31.*","192.168.*","127.*"'
+F2 = '| eval first=strftime(first,"%Y-%m-%d %H:%M:%S"), last=strftime(last,"%Y-%m-%d %H:%M:%S")'
+F1 = '| eval first=strftime(first,"%Y-%m-%d %H:%M:%S")'
+
+T = {}
+
+T["bod_hunt_intel"] = ("Intel: open CVEs on the host with CISA KEV and Vulnrichment context. Tokens: host",
+ '| inputlookup asset_vulnerability_data.csv | eval Host=lower(Host) | search Host="$host$" "Vulnerability State"!="Fixed" | eval cve=upper(CVE) | rename "CVSS v3.0 Vector" AS vector'
+ ' | lookup cisa_kev_lookup.csv cveID AS cve OUTPUT product vulnerabilityName cwes knownRansomwareCampaignUse forensicTriage shortDescription notes'
+ ' | lookup cisa_vulnrichment_lookup.csv cve OUTPUT exploitation automatable technical_impact | eval kev=if(isnotnull(vulnerabilityName),"yes","no")'
+ ' | stats first(kev) AS kev first(product) AS product first(vulnerabilityName) AS name first(cwes) AS cwes first(exploitation) AS exploitation first(automatable) AS automatable first(technical_impact) AS impact first(vector) AS vector first(Port) AS port first(knownRansomwareCampaignUse) AS ransomware first(forensicTriage) AS cisa_forensic first(shortDescription) AS description by cve | sort - kev')
+
+T["bod_hunt_cov1"] = ("COV-1 coverage per data model. Tokens: host ip et lt",
+ f'| tstats summariesonly=t count from datamodel=Web where index={IDX} Web.dest="$host$" earliest=$et$ latest=$lt$ | eval dm="Web"'
+ f' | append [| tstats summariesonly=t count from datamodel=Authentication where index={IDX} Authentication.dest="$host$" earliest=$et$ latest=$lt$ | eval dm="Authentication"]'
+ f' | append [| tstats summariesonly=t count from datamodel=Change where index={IDX} All_Changes.dest="$host$" earliest=$et$ latest=$lt$ | eval dm="Change"]'
+ f' | append [| tstats summariesonly=t count from datamodel=Network_Traffic where index={IDX} (All_Traffic.src="$ip$" OR All_Traffic.dest="$ip$") earliest=$et$ latest=$lt$ | eval dm="Network_Traffic"]'
+ ' | append [| tstats summariesonly=t count from datamodel=Endpoint.Processes where Processes.dest="$host$" earliest=$et$ latest=$lt$ | eval dm="Endpoint.Processes"]'
+ ' | eval coverage=if(count>0,"data","GAP - no telemetry") | table dm count coverage')
+
+T["bod_hunt_ia1"] = ("IA-1 T1190 exploit attempts: bursts of 5xx per source. Tokens: host et lt",
+ f'| tstats summariesonly=t count min(_time) AS first max(_time) AS last values(Web.status) AS status values(Web.uri_path) AS paths from datamodel=Web where index={IDX} Web.dest="$host$" Web.status>=500 earliest=$et$ latest=$lt$ by Web.src'
+ f' | where count>=3 | sort - count | head 5 {F2}')
+
+T["bod_hunt_ia2"] = ("IA-2 T1078 logins from non-private sources. Tokens: host et lt",
+ f'| tstats summariesonly=t count min(_time) AS first max(_time) AS last from datamodel=Authentication where index={IDX} Authentication.dest="$host$" NOT Authentication.src IN ({PRIV}) earliest=$et$ latest=$lt$'
+ f' by Authentication.src Authentication.user Authentication.action Authentication.app {F2}')
+
+T["bod_hunt_exe1"] = ("EXE-1 T1059 commands sent through the web. Tokens: host et lt",
+ f'| tstats summariesonly=t count values(Web.url) AS urls min(_time) AS first max(_time) AS last from datamodel=Web where index={IDX} Web.dest="$host$"'
+ ' (Web.url="*cmd=*" OR Web.url="*exec=*" OR Web.url="*system(*" OR Web.url="*passthru*" OR Web.url="*whoami*" OR Web.url="*/etc/passwd*" OR Web.url="*%7C*" OR Web.url="*wget*" OR Web.url="*curl*")'
+ f' earliest=$et$ latest=$lt$ by Web.src {F2}')
+
+T["bod_hunt_exe2"] = ("EXE-2 T1059 shell started by a service process (needs EDR). Tokens: host et lt",
+ '| tstats summariesonly=t count min(_time) AS first from datamodel=Endpoint.Processes where Processes.dest="$host$" Processes.parent_process_name IN ("httpd","nginx","php-fpm","node","java","w3wp.exe","tomcat*")'
+ ' Processes.process_name IN ("sh","bash","dash","python*","perl","curl","wget","cmd.exe","powershell.exe") earliest=$et$ latest=$lt$'
+ f' by Processes.user Processes.parent_process_name Processes.process {F1}')
+
+T["bod_hunt_per1"] = ("PER-1 T1505.003 web shell: script answered 200 to a single client. Tokens: host et lt",
+ f'| tstats summariesonly=t count dc(Web.src) AS clients values(Web.src) AS client min(_time) AS first max(_time) AS last from datamodel=Web where index={IDX} Web.dest="$host$" Web.status=200'
+ ' (Web.uri_path="*.php" OR Web.uri_path="*.jsp" OR Web.uri_path="*.jspx" OR Web.uri_path="*.asp" OR Web.uri_path="*.aspx" OR Web.uri_path="*.ashx" OR Web.uri_path="*.cgi" OR Web.uri_path="*.pl")'
+ f' earliest=$et$ latest=$lt$ by Web.uri_path | where clients=1 | head 10 {F2}')
+
+T["bod_hunt_per2"] = ("PER-2 T1136/T1098 account or group changes. Tokens: host et lt",
+ f'| tstats summariesonly=t count min(_time) AS first from datamodel=Change where index={IDX} All_Changes.dest="$host$" All_Changes.object_category IN ("user","group") earliest=$et$ latest=$lt$'
+ f' by All_Changes.action All_Changes.object_category All_Changes.object {F1}')
+
+T["bod_hunt_per3"] = ("PER-3 T1078 new accounts used. Tokens: host et lt accounts (comma list, or none)",
+ f'| tstats summariesonly=t count min(_time) AS first from datamodel=Authentication where index={IDX} Authentication.dest="$host$" earliest=$et$ latest=$lt$ by Authentication.user Authentication.src Authentication.action'
+ ' | rename Authentication.* AS * | where like(",$accounts$,", "%,".user.",%") ' + F1)
+
+T["bod_hunt_pe1"] = ("PE-1 T1068/T1548.003 service account running commands as root (raw linux_secure). Tokens: host et lt",
+ f'search index={IDX} host="$host$" sourcetype=linux_secure "USER=root" earliest=$et$ latest=$lt$ | rex "sudo\\[\\d+\\]:\\s+(?<run_as>\\S+)\\s+:.*COMMAND=(?<command>.+)"'
+ ' | search run_as IN ("apache","nginx","www-data","node","tomcat","daemon","nobody") | stats count min(_time) AS first values(command) AS commands by run_as ' + F1)
+
+T["bod_hunt_lm1"] = ("LM-1 T1021 admin-port connections and logins from the host to other internal hosts. Tokens: ip et lt",
+ f'| tstats summariesonly=t count min(_time) AS first from datamodel=Network_Traffic where index={IDX} All_Traffic.src="$ip$" All_Traffic.dest IN ("10.*","172.16.*","192.168.*") All_Traffic.dest_port IN (22,23,135,139,445,3389,5985,5986) earliest=$et$ latest=$lt$'
+ ' by All_Traffic.dest All_Traffic.dest_port | eval check="network"'
+ f' | append [| tstats summariesonly=t count min(_time) AS first from datamodel=Authentication where index={IDX} Authentication.src="$ip$" earliest=$et$ latest=$lt$ by Authentication.dest Authentication.user Authentication.action | eval check="login"] {F1}')
+
+T["bod_hunt_c2exf"] = ("C2-1/EXF-1 T1571/T1071/T1041 outbound to public addresses flagged by behaviour. Tokens: ip et lt attackers (comma list, or none)",
+ f'| tstats summariesonly=t count sum(All_Traffic.bytes) AS bytes min(_time) AS first max(_time) AS last from datamodel=Network_Traffic where index={IDX} All_Traffic.src="$ip$" NOT All_Traffic.dest IN ("10.*","172.16.*","192.168.*","169.254.*") earliest=$et$ latest=$lt$'
+ ' by All_Traffic.dest All_Traffic.dest_port | rename All_Traffic.* AS * | eval MB=round(bytes/1048576,1), is_att=if(like(",$attackers$,", "%,".dest.",%"),1,0)'
+ ' | eval flag=case(NOT dest_port IN (53,80,123,443),"C2-1 unusual port", MB>=100,"EXF-1 large outbound", is_att=1,"C2-1 outbound to attacker", true(),null()) | where isnotnull(flag) '
+ + F2 + ' | table dest dest_port count MB flag first last')
+
+T["bod_hunt_pivot_raw"] = ("Guarded raw pivot: top messages for the host in linux_secure/syslog. Tokens: host et lt",
+ f'search index={IDX} host="$host$" (sourcetype=linux_secure OR sourcetype=syslog) earliest=$et$ latest=$lt$ | rex "^\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+(?<proc>[^:\\[]+)" | stats count min(_time) AS first by proc | sort - count | head 15 ' + F1)
+
+def substitute(spl, **tok):
+    for k, v in tok.items():
+        spl = spl.replace("$" + k + "$", v)
+    return spl

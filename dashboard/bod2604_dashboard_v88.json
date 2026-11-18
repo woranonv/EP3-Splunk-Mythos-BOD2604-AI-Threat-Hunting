@@ -1,0 +1,1715 @@
+{
+  "title": "Mythos Era - BOD 26-04 Prioritization + EA Visibility (ES 8.8)",
+  "description": "Part 1: CISA BOD 26-04 risk-based patch prioritization (real scanned servers). Part 2: Exposure Analytics visibility - shadow assets, unscanned servers, missing EDR.",
+  "inputs": {
+    "input_priority": {
+      "type": "input.dropdown",
+      "title": "Priority Tier",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "P1 - Urgent (3 days)",
+            "value": "P1"
+          },
+          {
+            "label": "P1 + forensic triage (3 days)",
+            "value": "P1F"
+          },
+          {
+            "label": "P2 - High (14 days)",
+            "value": "P2"
+          },
+          {
+            "label": "P3 - Medium (60 days)",
+            "value": "P3"
+          },
+          {
+            "label": "P4 - Planned (next upgrade)",
+            "value": "P4"
+          }
+        ],
+        "defaultValue": "P1",
+        "token": "sel_priority"
+      }
+    },
+    "input_sla": {
+      "type": "input.dropdown",
+      "title": "SLA Status",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Overdue",
+            "value": "overdue"
+          },
+          {
+            "label": "Within SLA",
+            "value": "within_sla"
+          },
+          {
+            "label": "Next system upgrade",
+            "value": "next_system_upgrade"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_sla"
+      }
+    },
+    "input_edr": {
+      "type": "input.dropdown",
+      "title": "EDR Installed",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Yes",
+            "value": "yes"
+          },
+          {
+            "label": "No",
+            "value": "no"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_edr"
+      }
+    },
+    "input_kev": {
+      "type": "input.dropdown",
+      "title": "In KEV",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Yes",
+            "value": "yes"
+          },
+          {
+            "label": "No",
+            "value": "no"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_kev"
+      }
+    },
+    "input_exposed": {
+      "type": "input.dropdown",
+      "title": "Exposed Internet",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Yes",
+            "value": "yes"
+          },
+          {
+            "label": "No",
+            "value": "no"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_exposed"
+      }
+    },
+    "input_asset_priority": {
+      "type": "input.dropdown",
+      "title": "Asset Priority",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Critical",
+            "value": "critical"
+          },
+          {
+            "label": "High",
+            "value": "high"
+          },
+          {
+            "label": "Medium",
+            "value": "medium"
+          },
+          {
+            "label": "Low",
+            "value": "low"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_asset_priority"
+      }
+    },
+    "input_automatable": {
+      "type": "input.dropdown",
+      "title": "Automatable",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Yes",
+            "value": "yes"
+          },
+          {
+            "label": "No",
+            "value": "no"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_automatable"
+      }
+    },
+    "input_tech_impact": {
+      "type": "input.dropdown",
+      "title": "Technical Impact",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Total",
+            "value": "total"
+          },
+          {
+            "label": "Partial",
+            "value": "partial"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_tech_impact"
+      }
+    },
+    "input_ransomware": {
+      "type": "input.dropdown",
+      "title": "Ransomware Campaign",
+      "options": {
+        "items": [
+          {
+            "label": "All",
+            "value": "*"
+          },
+          {
+            "label": "Known (Active Ransomware)",
+            "value": "Known"
+          },
+          {
+            "label": "Unknown",
+            "value": "Unknown"
+          }
+        ],
+        "defaultValue": "*",
+        "token": "sel_ransomware"
+      }
+    },
+    "input_hunt_target": {
+      "type": "input.text",
+      "title": "2. Or type host / IP (any = use list)",
+      "options": {
+        "defaultValue": "any",
+        "token": "hunt_target"
+      }
+    },
+    "input_hunt_run": {
+      "type": "input.dropdown",
+      "title": "4. Run AI agent",
+      "options": {
+        "items": [
+          {
+            "label": "No - signals only",
+            "value": "no"
+          },
+          {
+            "label": "Yes - run Hunting agent",
+            "value": "yes"
+          }
+        ],
+        "defaultValue": "no",
+        "token": "hunt_run"
+      }
+    },
+    "input_hunt_pick": {
+      "type": "input.dropdown",
+      "title": "1. Host from worklist (follows filters above)",
+      "dataSources": {
+        "primary": "ds_hunt_hosts"
+      },
+      "options": {
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()",
+        "token": "hunt_pick",
+        "defaultValue": "macfish"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    },
+    "input_hunt_time": {
+      "type": "input.timerange",
+      "title": "3. Hunt time range (for the AI agent)",
+      "options": {
+        "defaultValue": "-7d@h,now",
+        "token": "hunt_time"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "-24h",
+            "latest": "now"
+          }
+        }
+      }
+    },
+    "tokens": {
+      "default": {
+        "sel_priority": {
+          "value": "P1"
+        },
+        "sel_sla": {
+          "value": "*"
+        },
+        "sel_edr": {
+          "value": "*"
+        },
+        "sel_kev": {
+          "value": "*"
+        },
+        "sel_exposed": {
+          "value": "*"
+        },
+        "sel_asset_priority": {
+          "value": "*"
+        },
+        "sel_automatable": {
+          "value": "*"
+        },
+        "sel_tech_impact": {
+          "value": "*"
+        },
+        "sel_ransomware": {
+          "value": "*"
+        },
+        "hunt_target": {
+          "value": "any"
+        },
+        "hunt_run": {
+          "value": "no"
+        },
+        "hunt_pick": {
+          "value": "macfish"
+        }
+      }
+    }
+  },
+  "dataSources": {
+    "ds_kpi_findings": {
+      "type": "ds.chain",
+      "name": "Total open findings",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| stats count"
+      }
+    },
+    "ds_kpi_p1": {
+      "type": "ds.chain",
+      "name": "P1 findings",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P1\" | stats count"
+      }
+    },
+    "ds_kpi_p1_overdue": {
+      "type": "ds.chain",
+      "name": "P1 overdue",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P1\" AND sla_status=\"overdue\" | stats count"
+      }
+    },
+    "ds_kpi_forensic": {
+      "type": "ds.chain",
+      "name": "Forensic hosts",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where forensic_required=\"yes\" | stats dc(Host) as count"
+      }
+    },
+    "ds_tier_p1": {
+      "type": "ds.chain",
+      "name": "ds_tier_p1",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P1\" | stats count"
+      }
+    },
+    "ds_tier_p2": {
+      "type": "ds.chain",
+      "name": "ds_tier_p2",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P2\" | stats count"
+      }
+    },
+    "ds_tier_p3": {
+      "type": "ds.chain",
+      "name": "ds_tier_p3",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P3\" | stats count"
+      }
+    },
+    "ds_tier_p4": {
+      "type": "ds.chain",
+      "name": "ds_tier_p4",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where priority_label=\"P4\" | stats count"
+      }
+    },
+    "ds_severity": {
+      "type": "ds.search",
+      "name": "CVSS-only contrast",
+      "options": {
+        "query": "| inputlookup asset_vulnerability_data.csv | search \"Vulnerability State\"!=\"Fixed\" | stats count as Findings by Risk | eval order=case(Risk=\"Critical\",1,Risk=\"High\",2,Risk=\"Medium\",3,true(),4) | sort order | fields - order | rename Risk as Severity"
+      }
+    },
+    "ds_sla_pie": {
+      "type": "ds.chain",
+      "name": "ds_sla_pie",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| stats count by sla_status"
+      }
+    },
+    "ds_worklist": {
+      "type": "ds.search",
+      "name": "worklist",
+      "options": {
+        "query": "| savedsearch \"BOD 26-04 Vulnerability Prioritization\"\n| where (\"$sel_priority$\"=\"*\" OR priority_label=\"$sel_priority$\" OR (\"$sel_priority$\"=\"P1F\" AND forensic_required=\"yes\")) AND (\"$sel_sla$\"=\"*\" OR sla_status=\"$sel_sla$\") AND (\"$sel_edr$\"=\"*\" OR edr_installed=\"$sel_edr$\") AND (\"$sel_kev$\"=\"*\" OR in_kev=\"$sel_kev$\") AND (\"$sel_exposed$\"=\"*\" OR exposed=\"$sel_exposed$\") AND (\"$sel_asset_priority$\"=\"*\" OR asset_priority=\"$sel_asset_priority$\") AND (\"$sel_automatable$\"=\"*\" OR automatable=\"$sel_automatable$\") AND (\"$sel_tech_impact$\"=\"*\" OR technical_impact=\"$sel_tech_impact$\") AND (\"$sel_ransomware$\"=\"*\" OR kev_ransomware=\"$sel_ransomware$\")\n| eval cisa_forensic_triage=case(in_kev=\"no\",\"-\", kev_date_added<\"2026-07-01\",\"n/a\", true(), cisa_forensic_triage)\n| table priority_label forensic_required cisa_forensic_triage Host cve kev_product cvss in_kev kev_ransomware exploitation automatable technical_impact exposed elevated asset_priority bunit business_service owner clock_start clock_source due_date sla_status edr_installed\n| rename priority_label as Priority, forensic_required as Forensic, cisa_forensic_triage as \"CISA Forensic\", kev_product as Product, cve as CVE, cvss as CVSS, in_kev as \"In KEV\", kev_ransomware as \"Ransomware\", exploitation as Exploitation, automatable as Automatable, technical_impact as \"Tech Impact\", exposed as Exposed, elevated as Elevated, asset_priority as \"Asset Priority\", bunit as \"Business Unit\", business_service as Service, owner as Owner, clock_start as \"Clock Start\", clock_source as \"Clock From\", due_date as \"Due Date\", sla_status as \"SLA Status\", edr_installed as EDR"
+      }
+    },
+    "ds_ea_total": {
+      "type": "ds.search",
+      "name": "EA observed assets",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | stats count"
+      }
+    },
+    "ds_ea_shadow_kpi": {
+      "type": "ds.search",
+      "name": "Shadow assets (no CMDB source)",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | where asset_type IN (\"Server\",\"Workstation\") | where isnull(lastseen_14) AND isnull(lastseen_15) | stats count"
+      }
+    },
+    "ds_ea_unscanned_kpi": {
+      "type": "ds.search",
+      "name": "Servers without current VA scan",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | where asset_type=\"Server\" | where isnull(lastseen_12) OR lastseen_12<(now()-86400*5) | stats count"
+      }
+    },
+    "ds_ea_noedr_kpi": {
+      "type": "ds.search",
+      "name": "No endpoint security",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | where asset_type IN (\"Server\",\"Workstation\") AND isnull(lastseen_05) | stats count"
+      }
+    },
+    "ds_ea_shadow_table": {
+      "type": "ds.search",
+      "name": "Shadow asset list",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | lookup asset_business_context.csv nt_host OUTPUT bunit AS ctx_bunit owner AS ctx_owner priority AS ctx_priority business_service AS ctx_service | eval bunit=coalesce(ctx_bunit,\"unknown\"), owner=coalesce(ctx_owner,\"unassigned\"), priority=coalesce(ctx_priority,\"unknown\"), service=coalesce(ctx_service,\"unknown\") | where asset_type IN (\"Server\",\"Workstation\") | where isnull(lastseen_14) AND isnull(lastseen_15) | join type=left nt_host [| savedsearch \"BOD 26-04 Vulnerability Prioritization\" | stats min(priority_label) AS tier max(eval(if(forensic_required=\"yes\",1,0))) AS fx max(eval(if(in_kev=\"yes\",1,0))) AS kevn count(eval(priority_label=\"P1\")) AS p1_findings count AS open_findings by Host | rename Host AS nt_host] | fillnull value=0 p1_findings open_findings | eval last_seen=strftime(lastseen_max,\"%Y-%m-%d\"), first_seen=strftime(firstseen,\"%Y-%m-%d\"), scanned=if(isnotnull(lastseen_12),\"yes\",\"no\"), edr=if(isnotnull(lastseen_05),\"yes\",\"no\"), p1_any=if(p1_findings>0,1,0) | fillnull value=\"none\" tier | fillnull value=0 kevn fx | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip AS asm_ip | eval exposed=if(isnotnull(asm_ip),\"yes\",\"no\") | eval rk=case(p1_findings>0 AND exposed=\"yes\",1, p1_findings>0,2, exposed=\"yes\",3, open_findings>0,4, true(),5), risk=case(rk=1,\"P1 + exposed\", rk=2,\"P1\", rk=3,\"Exposed\", rk=4,\"Findings\", true(),\"None\") | eval in_kev=if(kevn=1,\"yes\",\"no\") | where (\"$sel_priority$\"=\"*\" OR tier=\"$sel_priority$\" OR (\"$sel_priority$\"=\"P1F\" AND fx=1)) AND (\"$sel_exposed$\"=\"*\" OR exposed=\"$sel_exposed$\") AND (\"$sel_asset_priority$\"=\"*\" OR priority=\"$sel_asset_priority$\") AND (\"$sel_edr$\"=\"*\" OR edr=\"$sel_edr$\") AND (\"$sel_kev$\"=\"*\" OR in_kev=\"$sel_kev$\") | sort 0 rk -p1_findings -open_findings -last_seen | table risk tier in_kev nt_host p1_findings open_findings exposed asset_type os ip owner user_id first_seen last_seen scanned edr | rename risk as Risk, tier as \"Top Tier\", in_kev as \"In KEV\", exposed as Exposed, nt_host as Host, p1_findings as \"P1 Findings\", open_findings as \"Open Findings\", asset_type as Type, os as OS, ip as IP, owner as Owner, user_id as \"Last User (EA)\", first_seen as \"First Seen\", last_seen as \"Last Seen\", scanned as \"VA Scanned\", edr as EDR"
+      }
+    },
+    "ds_ea_unscanned_table": {
+      "type": "ds.search",
+      "name": "Unscanned / stale servers",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | lookup asset_business_context.csv nt_host OUTPUT bunit AS ctx_bunit owner AS ctx_owner priority AS ctx_priority business_service AS ctx_service | eval bunit=coalesce(ctx_bunit,\"unknown\"), owner=coalesce(ctx_owner,\"unassigned\"), priority=coalesce(ctx_priority,\"unknown\"), service=coalesce(ctx_service,\"unknown\") | where asset_type=\"Server\" | where isnull(lastseen_12) OR lastseen_12<(now()-86400*5) | eval scan_status=if(isnull(lastseen_12),\"never_scanned\",\"stale_coverage\"), last_scan=if(isnull(lastseen_12),\"-\",strftime(lastseen_12,\"%Y-%m-%d\")), cmdb=if(isnotnull(lastseen_14) OR isnotnull(lastseen_15),\"yes\",\"no\"), edr=if(isnotnull(lastseen_05),\"yes\",\"no\") | eval p1_findings=0, open_findings=0, asset_type=\"Server\", tier=\"none\", kevn=0, fx=0 | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip AS asm_ip | eval exposed=if(isnotnull(asm_ip),\"yes\",\"no\") | eval rk=case(p1_findings>0 AND exposed=\"yes\",1, p1_findings>0,2, exposed=\"yes\",3, open_findings>0,4, true(),5), risk=case(rk=1,\"P1 + exposed\", rk=2,\"P1\", rk=3,\"Exposed\", rk=4,\"Findings\", true(),\"None\") | eval in_kev=if(kevn=1,\"yes\",\"no\") | where (\"$sel_priority$\"=\"*\" OR tier=\"$sel_priority$\" OR (\"$sel_priority$\"=\"P1F\" AND fx=1)) AND (\"$sel_exposed$\"=\"*\" OR exposed=\"$sel_exposed$\") AND (\"$sel_asset_priority$\"=\"*\" OR priority=\"$sel_asset_priority$\") AND (\"$sel_edr$\"=\"*\" OR edr=\"$sel_edr$\") AND (\"$sel_kev$\"=\"*\" OR in_kev=\"$sel_kev$\") | sort 0 rk scan_status | table risk nt_host exposed os ip bunit service owner priority scan_status last_scan cmdb edr | rename risk as Risk, exposed as Exposed, nt_host as Host, os as OS, ip as IP, bunit as \"Business Unit\", service as Service, owner as Owner, priority as Priority, scan_status as \"Scan Status\", last_scan as \"Last Scan\", cmdb as \"In CMDB\", edr as EDR"
+      }
+    },
+    "ds_worklist_hosts": {
+      "type": "ds.chain",
+      "name": "worklist_hosts",
+      "options": {
+        "extend": "ds_worklist",
+        "query": "| stats dc(Host) AS count"
+      }
+    },
+    "ds_worklist_findings": {
+      "type": "ds.chain",
+      "name": "worklist_findings",
+      "options": {
+        "extend": "ds_worklist",
+        "query": "| stats count AS count"
+      }
+    },
+    "ds_ea_noedr_table": {
+      "type": "ds.search",
+      "name": "EA no EDR",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | lookup asset_business_context.csv nt_host OUTPUT bunit AS ctx_bunit owner AS ctx_owner priority AS ctx_priority business_service AS ctx_service | eval bunit=coalesce(ctx_bunit,\"unknown\"), owner=coalesce(ctx_owner,\"unassigned\"), priority=coalesce(ctx_priority,\"unknown\"), service=coalesce(ctx_service,\"unknown\") | where asset_type IN (\"Server\",\"Workstation\") AND isnull(lastseen_05) | join type=left nt_host [| savedsearch \"BOD 26-04 Vulnerability Prioritization\" | stats min(priority_label) AS tier max(eval(if(forensic_required=\"yes\",1,0))) AS fx max(eval(if(in_kev=\"yes\",1,0))) AS kevn count(eval(priority_label=\"P1\")) AS p1_findings count AS open_findings max(eval(if(exposed=\"yes\",1,0))) AS exp by Host | rename Host AS nt_host] | fillnull value=0 p1_findings open_findings exp | eval edr=\"no\", cmdb=if(isnotnull(lastseen_14) OR isnotnull(lastseen_15),\"yes\",\"no\"), scanned=if(isnotnull(lastseen_12),\"yes\",\"no\"), last_seen=strftime(lastseen_max,\"%Y-%m-%d\") | fillnull value=\"none\" tier | fillnull value=0 kevn fx | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip AS asm_ip | eval exposed=if(isnotnull(asm_ip),\"yes\",\"no\") | eval rk=case(p1_findings>0 AND exposed=\"yes\",1, p1_findings>0,2, exposed=\"yes\",3, open_findings>0,4, true(),5), risk=case(rk=1,\"P1 + exposed\", rk=2,\"P1\", rk=3,\"Exposed\", rk=4,\"Findings\", true(),\"None\") | eval in_kev=if(kevn=1,\"yes\",\"no\") | where (\"$sel_priority$\"=\"*\" OR tier=\"$sel_priority$\" OR (\"$sel_priority$\"=\"P1F\" AND fx=1)) AND (\"$sel_exposed$\"=\"*\" OR exposed=\"$sel_exposed$\") AND (\"$sel_asset_priority$\"=\"*\" OR priority=\"$sel_asset_priority$\") AND (\"$sel_edr$\"=\"*\" OR edr=\"$sel_edr$\") AND (\"$sel_kev$\"=\"*\" OR in_kev=\"$sel_kev$\") | sort 0 rk -p1_findings -open_findings asset_type -last_seen | table risk tier in_kev nt_host asset_type os ip bunit service owner priority p1_findings open_findings exposed cmdb scanned last_seen | rename risk as Risk, tier as \"Top Tier\", in_kev as \"In KEV\", nt_host as Host, asset_type as Type, os as OS, ip as IP, bunit as \"Business Unit\", service as Service, owner as Owner, priority as Priority, p1_findings as \"P1 Findings\", open_findings as \"Open Findings\", exposed as Exposed, cmdb as \"In CMDB\", scanned as \"VA Scanned\", last_seen as \"Last Seen\""
+      }
+    },
+    "ds_hunt_ctx": {
+      "type": "ds.search",
+      "name": "Hunt target context",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip | eval typed=lower(trim(\"$hunt_target$\")), t=if(in(typed,\"any\",\"*\",\"\"), lower(\"$hunt_pick$\"), typed) | eval allids=\",\".mvjoin(mvappend(lower(nt_host), ip, ip_translated, external_ip), \",\").\",\" | where like(allids, \"%,\".t.\",%\") | head 1 | eval Host=nt_host, ip=mvindex(ip,0), edr=if(isnotnull(lastseen_05),\"yes\",\"no\"), cmdb=if(isnotnull(lastseen_14) OR isnotnull(lastseen_15),\"yes\",\"no\") | lookup asset_business_context.csv nt_host OUTPUT bunit owner priority | join type=left Host [| savedsearch \"BOD 26-04 Vulnerability Prioritization\" | stats values(cve) AS cves values(kev_product) AS products min(priority_label) AS tier max(eval(if(forensic_required=\"yes\",1,0))) AS f min(clock_start) AS clock_start by Host] | eval forensic=if(f=1,\"yes\",\"no\"), cves=mvjoin(cves,\", \"), products=mvjoin(products,\", \"), bunit=coalesce(bunit,\"unknown\"), owner=coalesce(owner,\"unassigned\"), priority=coalesce(priority,\"unknown\") | table Host ip external_ip edr cmdb bunit owner priority tier forensic cves products clock_start | rename Host as Host, ip as IP, external_ip as \"External IP\", edr as EDR, cmdb as \"In CMDB\", bunit as \"Business Unit\", owner as Owner, priority as \"Asset Priority\", tier as \"BOD Tier\", forensic as \"Forensic Triage\", cves as CVEs, products as Products, clock_start as \"Clock Start\""
+      }
+    },
+    "ds_hunt_ai": {
+      "type": "ds.search",
+      "name": "AI agent triage",
+      "options": {
+        "query": "| inputlookup ea_network_asset_inventory | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip | eval typed=lower(trim(\"$hunt_target$\")), t=if(in(typed,\"any\",\"*\",\"\"), lower(\"$hunt_pick$\"), typed) | eval allids=\",\".mvjoin(mvappend(lower(nt_host), ip, ip_translated, external_ip), \",\").\",\" | where like(allids, \"%,\".t.\",%\") | head 1 | eval Host=nt_host, ip=mvindex(ip,0), edr=if(isnotnull(lastseen_05),\"yes\",\"no\"), cmdb=if(isnotnull(lastseen_14) OR isnotnull(lastseen_15),\"yes\",\"no\") | where \"$hunt_run$\"=\"yes\" | join type=left Host [| inputlookup asset_vulnerability_data.csv | eval Host=lower(Host), CVE=upper(CVE) | search \"Vulnerability State\"!=\"Fixed\" | stats values(CVE) AS cves by Host | eval cves=mvjoin(cves,\", \")] | table Host ip external_ip edr cmdb cves | aiagent agent_name=\"Hunting\" prompt=\"Host: {Host} | Internal IP: {ip} | External IP: {external_ip} | EDR: {edr} | In CMDB: {cmdb} | Open CVEs: {cves} | Hunt window: earliest=$hunt_time.earliest$ latest=$hunt_time.latest$\" | eval report=coalesce(result_1, error) | table status report | rename status as Status, report as \"Triage report\""
+      }
+    },
+    "ds_hunt_intel": {
+      "type": "ds.search",
+      "name": "Hunt intel",
+      "options": {
+        "query": "| inputlookup asset_vulnerability_data.csv | eval Host=lower(Host) | search [| inputlookup ea_network_asset_inventory | lookup asm_exposed_assets.csv nt_host OUTPUT external_ip | eval typed=lower(trim(\"$hunt_target$\")), t=if(in(typed,\"any\",\"*\",\"\"), lower(\"$hunt_pick$\"), typed) | eval allids=\",\".mvjoin(mvappend(lower(nt_host), ip, ip_translated, external_ip), \",\").\",\" | where like(allids, \"%,\".t.\",%\") | head 1 | eval Host=nt_host | fields Host] \"Vulnerability State\"!=\"Fixed\" | eval cve=upper(CVE) | lookup cisa_kev_lookup.csv cveID AS cve OUTPUT product vulnerabilityName cwes knownRansomwareCampaignUse forensicTriage shortDescription | lookup cisa_vulnrichment_lookup.csv cve OUTPUT exploitation automatable technical_impact | eval kev=if(isnotnull(vulnerabilityName),\"yes\",\"no\"), ssvc=coalesce(exploitation,\"-\").\" / \".coalesce(automatable,\"-\").\" / \".coalesce(technical_impact,\"-\"), av=case(match('CVSS v3.0 Vector',\"AV:N\"),\"Network\", match('CVSS v3.0 Vector',\"AV:L\"),\"Local\", true(),\"-\"), name=coalesce(vulnerabilityName,'Plugin Name'), port=Port.\"/\".Protocol | stats first(kev) AS kev first(product) AS product first(name) AS name first(cwes) AS cwes first(ssvc) AS ssvc first(av) AS av first(port) AS port first(knownRansomwareCampaignUse) AS rw first(forensicTriage) AS ft first(shortDescription) AS descr by cve | sort - kev cve | table cve kev product name cwes ssvc av port rw ft descr | rename cve as CVE, kev as \"In KEV\", product as Product, name as Vulnerability, cwes as CWE, ssvc as \"SSVC (exploit / auto / impact)\", av as \"Attack Vector\", port as Port, rw as Ransomware, ft as \"CISA Forensic\", descr as \"KEV Description\""
+      }
+    },
+    "ds_hunt_hosts": {
+      "type": "ds.chain",
+      "name": "hunt host list",
+      "options": {
+        "extend": "ds_bod_base",
+        "query": "| where (\"$sel_priority$\"=\"*\" OR priority_label=\"$sel_priority$\" OR (\"$sel_priority$\"=\"P1F\" AND forensic_required=\"yes\")) AND (\"$sel_sla$\"=\"*\" OR sla_status=\"$sel_sla$\") AND (\"$sel_edr$\"=\"*\" OR edr_installed=\"$sel_edr$\") AND (\"$sel_kev$\"=\"*\" OR in_kev=\"$sel_kev$\") AND (\"$sel_exposed$\"=\"*\" OR exposed=\"$sel_exposed$\") AND (\"$sel_asset_priority$\"=\"*\" OR asset_priority=\"$sel_asset_priority$\") AND (\"$sel_automatable$\"=\"*\" OR automatable=\"$sel_automatable$\") AND (\"$sel_tech_impact$\"=\"*\" OR technical_impact=\"$sel_tech_impact$\") AND (\"$sel_ransomware$\"=\"*\" OR kev_ransomware=\"$sel_ransomware$\")\n| stats count AS findings by Host | sort - findings | eval label=Host.\" (\".findings.\" findings)\", value=Host | table label value"
+      }
+    },
+    "ds_bod_base": {
+      "type": "ds.search",
+      "name": "BOD 26-04 base",
+      "options": {
+        "query": "| savedsearch \"BOD 26-04 Vulnerability Prioritization\""
+      }
+    }
+  },
+  "visualizations": {
+    "eyebrow": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "MYTHOS ERA - RISK-BASED VULNERABILITY MANAGEMENT | CISA BOD 26-04 x SPLUNK ENTERPRISE SECURITY 8.8 EXPOSURE ANALYTICS",
+        "fontColor": "#39C6D6",
+        "backgroundColor": "#0D1524",
+        "fontSize": "small"
+      }
+    },
+    "main_title": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "# Vulnerability Risk - Prioritize the Known, Expose the Unknown",
+        "fontColor": "#E7ECF5",
+        "backgroundColor": "#0D1524",
+        "fontSize": "large"
+      }
+    },
+    "part1_banner": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## PART 1 - BOD 26-04 Patch Prioritization (scanned servers)\nRank every scanner finding by **Exposed x KEV x Automatable x Impact** (not CVSS) -> **P1** 3 days (+ forensics) | **P2** 14 days | **P3** 60 days | **P4** next upgrade",
+        "fontColor": "#0A0F1A",
+        "backgroundColor": "#39C6D6",
+        "fontSize": "default"
+      }
+    },
+    "kpi_findings": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_kpi_findings"
+      },
+      "title": "Open findings",
+      "options": {
+        "majorColor": "#8B98AC",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "Active, non-remediated",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_p1": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_kpi_p1"
+      },
+      "title": "P1 - Fix within 3 days",
+      "options": {
+        "majorColor": "#FF4D5E",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "BOD 26-04 Table 1 - 3-day rows",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_p1_overdue": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_kpi_p1_overdue"
+      },
+      "title": "P1 OVERDUE",
+      "options": {
+        "majorColor": "#FF4D5E",
+        "backgroundColor": "#1A0D12",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "Past 3-day SLA",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_forensic": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_kpi_forensic"
+      },
+      "title": "Hosts needing forensic triage",
+      "options": {
+        "majorColor": "#FFA23E",
+        "backgroundColor": "#0D1420",
+        "unit": "hosts",
+        "unitPosition": "after",
+        "underLabel": "BOD 26-04: In KEV + total control + exposed or automatable",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "tier_p1": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_tier_p1"
+      },
+      "title": "P1 - Urgent",
+      "options": {
+        "majorColor": "#FF4D5E",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "Within 3 days",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "tier_p2": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_tier_p2"
+      },
+      "title": "P2 - High",
+      "options": {
+        "majorColor": "#FFA23E",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "Within 14 days",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "tier_p3": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_tier_p3"
+      },
+      "title": "P3 - Medium",
+      "options": {
+        "majorColor": "#FFD666",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "Within 60 days",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "tier_p4": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_tier_p4"
+      },
+      "title": "P4 - Planned",
+      "options": {
+        "majorColor": "#94A3BC",
+        "backgroundColor": "#0D1420",
+        "unit": "findings",
+        "unitPosition": "after",
+        "underLabel": "At next system upgrade",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "severity_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_severity"
+      },
+      "title": "The old way - CVSS severity alone",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 5,
+        "drilldown": "none",
+        "showRowNumbers": false,
+        "columnFormat": {
+          "Severity": {
+            "rowColors": "> table | seriesByName(\"Severity\") | matchValue(sevColor)"
+          },
+          "Findings": {
+            "align": "right",
+            "rowColors": "> table | seriesByName(\"Severity\") | matchValue(sevColor)"
+          }
+        }
+      },
+      "context": {
+        "sevColor": [
+          {
+            "match": "Critical",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "High",
+            "value": "#FFA23E"
+          },
+          {
+            "match": "Medium",
+            "value": "#FFD666"
+          },
+          {
+            "match": "Low",
+            "value": "#5B8DEF"
+          }
+        ]
+      }
+    },
+    "sla_pie": {
+      "type": "splunk.pie",
+      "dataSources": {
+        "primary": "ds_sla_pie"
+      },
+      "title": "SLA posture - are we on time?",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "seriesColorsByField": {
+          "overdue": "#FF4D5E",
+          "within_sla": "#2ECC8F",
+          "next_system_upgrade": "#94A3BC"
+        }
+      }
+    },
+    "worklist_title": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "### Prioritized worklist\nFilter: tier **$sel_priority$** | SLA **$sel_sla$** | EDR **$sel_edr$** | KEV **$sel_kev$** | Exposed **$sel_exposed$** - sorted P1-first, earliest deadline on top.",
+        "fontColor": "#39C6D6",
+        "backgroundColor": "#101827"
+      }
+    },
+    "worklist": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_worklist"
+      },
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 20,
+        "drilldown": "none",
+        "showRowNumbers": false,
+        "columnFormat": {
+          "Priority": {
+            "rowBackgroundColors": "> table | seriesByName(\"Priority\") | matchValue(pColor)",
+            "rowColors": "> table | seriesByName(\"Priority\") | pick(whiteText)"
+          },
+          "SLA Status": {
+            "rowColors": "> table | seriesByName(\"SLA Status\") | matchValue(slaColor)"
+          },
+          "In KEV": {
+            "rowColors": "> table | seriesByName(\"In KEV\") | matchValue(ynColor)"
+          },
+          "Exposed": {
+            "rowColors": "> table | seriesByName(\"Exposed\") | matchValue(ynColor)"
+          },
+          "Automatable": {
+            "rowColors": "> table | seriesByName(\"Automatable\") | matchValue(ynColor)"
+          },
+          "Forensic": {
+            "rowColors": "> table | seriesByName(\"Forensic\") | matchValue(ynColor)"
+          },
+          "Elevated": {
+            "rowColors": "> table | seriesByName(\"Elevated\") | matchValue(elevColor)"
+          },
+          "EDR": {
+            "rowColors": "> table | seriesByName(\"EDR\") | matchValue(edrColor)"
+          },
+          "CISA Forensic": {
+            "rowColors": "> table | seriesByName(\"CISA Forensic\") | matchValue(ynColor)"
+          }
+        }
+      },
+      "context": {
+        "pColor": [
+          {
+            "match": "P1",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "P2",
+            "value": "#FFA23E"
+          },
+          {
+            "match": "P3",
+            "value": "#FFD666"
+          },
+          {
+            "match": "P4",
+            "value": "#5B8DEF"
+          }
+        ],
+        "whiteText": [
+          "#FFFFFF"
+        ],
+        "slaColor": [
+          {
+            "match": "overdue",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "within_sla",
+            "value": "#2ECC8F"
+          },
+          {
+            "match": "next_system_upgrade",
+            "value": "#94A3BC"
+          }
+        ],
+        "ynColor": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          },
+          {
+            "match": "Yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "No",
+            "value": "#6F7D92"
+          }
+        ],
+        "elevColor": [
+          {
+            "match": "yes",
+            "value": "#39C6D6"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ],
+        "edrColor": [
+          {
+            "match": "no",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "yes",
+            "value": "#2ECC8F"
+          }
+        ]
+      }
+    },
+    "part2_banner": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## PART 2 - Exposure Analytics: what the funnel does NOT govern\nThe scanner can't rank what it doesn't see -> find **shadow assets**, **unscanned servers**, **hosts without EDR** -> register, scan, protect",
+        "fontColor": "#0A0F1A",
+        "backgroundColor": "#FF4D5E",
+        "fontSize": "default"
+      }
+    },
+    "kpi_ea_total": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_ea_total"
+      },
+      "title": "EA observed assets",
+      "options": {
+        "majorColor": "#39C6D6",
+        "backgroundColor": "#0D1420",
+        "unit": "assets",
+        "unitPosition": "after",
+        "underLabel": "Resolved from 20+ telemetry sources",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_ea_shadow": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_ea_shadow_kpi"
+      },
+      "title": "Shadow assets",
+      "options": {
+        "majorColor": "#FF4D5E",
+        "backgroundColor": "#1A0D12",
+        "unit": "assets",
+        "unitPosition": "after",
+        "underLabel": "Observed on network, absent from CMDB",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_ea_unscanned": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_ea_unscanned_kpi"
+      },
+      "title": "Servers without current VA scan",
+      "options": {
+        "majorColor": "#FFA23E",
+        "backgroundColor": "#0D1420",
+        "unit": "servers",
+        "unitPosition": "after",
+        "underLabel": "Never scanned or coverage stale >5d",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "kpi_ea_noedr": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_ea_noedr_kpi"
+      },
+      "title": "No endpoint security",
+      "options": {
+        "majorColor": "#FFD666",
+        "backgroundColor": "#0D1420",
+        "unit": "assets",
+        "unitPosition": "after",
+        "underLabel": "Servers + workstations without EDR agent",
+        "showSparkline": false,
+        "showTrend": false
+      }
+    },
+    "shadow_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_ea_shadow_table"
+      },
+      "title": "2.1 Shadow assets - alive on the network, nobody registered them",
+      "description": "Not in CMDB. Sorted by risk: P1 + exposed first. Fix = register owner, scan, patch. Follows the global filters: Priority Tier, Exposed, Asset Priority, EDR, In KEV.",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 12,
+        "drilldown": "none",
+        "showRowNumbers": false,
+        "columnFormat": {
+          "VA Scanned": {
+            "rowColors": "> table | seriesByName(\"VA Scanned\") | matchValue(noRed)"
+          },
+          "EDR": {
+            "rowColors": "> table | seriesByName(\"EDR\") | matchValue(noRed)"
+          },
+          "P1 Findings": {
+            "rowColors": "> table | seriesByName(\"P1 Findings\") | rangeValue(p1Range)"
+          },
+          "Risk": {
+            "rowColors": "> table | seriesByName(\"Risk\") | matchValue(riskColor)"
+          },
+          "Exposed": {
+            "rowColors": "> table | seriesByName(\"Exposed\") | matchValue(yesRedP2)"
+          }
+        }
+      },
+      "context": {
+        "noRed": [
+          {
+            "match": "no",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "yes",
+            "value": "#2ECC8F"
+          }
+        ],
+        "p1Range": [
+          {
+            "to": 1,
+            "value": "#6F7D92"
+          },
+          {
+            "from": 1,
+            "value": "#FF4D5E"
+          }
+        ],
+        "riskColor": [
+          {
+            "match": "P1 + exposed",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "P1",
+            "value": "#FFA23E"
+          },
+          {
+            "match": "Exposed",
+            "value": "#FFD666"
+          },
+          {
+            "match": "Findings",
+            "value": "#39C6D6"
+          },
+          {
+            "match": "None",
+            "value": "#6F7D92"
+          }
+        ],
+        "yesRedP2": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ]
+      }
+    },
+    "unscanned_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_ea_unscanned_table"
+      },
+      "title": "2.2 Servers outside VA coverage - risk unmeasured",
+      "description": "No current vulnerability scan, so zero findings. Exposed servers first. Fix = scan. Follows the global filters: Priority Tier, Exposed, Asset Priority, EDR, In KEV.",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 12,
+        "drilldown": "none",
+        "showRowNumbers": false,
+        "columnFormat": {
+          "Scan Status": {
+            "rowColors": "> table | seriesByName(\"Scan Status\") | matchValue(scanColor)"
+          },
+          "In CMDB": {
+            "rowColors": "> table | seriesByName(\"In CMDB\") | matchValue(noRed)"
+          },
+          "EDR": {
+            "rowColors": "> table | seriesByName(\"EDR\") | matchValue(noRed)"
+          },
+          "Risk": {
+            "rowColors": "> table | seriesByName(\"Risk\") | matchValue(riskColor)"
+          },
+          "Exposed": {
+            "rowColors": "> table | seriesByName(\"Exposed\") | matchValue(yesRedP2)"
+          }
+        }
+      },
+      "context": {
+        "scanColor": [
+          {
+            "match": "never_scanned",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "stale_coverage",
+            "value": "#FFA23E"
+          }
+        ],
+        "noRed": [
+          {
+            "match": "no",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "yes",
+            "value": "#2ECC8F"
+          }
+        ],
+        "riskColor": [
+          {
+            "match": "P1 + exposed",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "P1",
+            "value": "#FFA23E"
+          },
+          {
+            "match": "Exposed",
+            "value": "#FFD666"
+          },
+          {
+            "match": "Findings",
+            "value": "#39C6D6"
+          },
+          {
+            "match": "None",
+            "value": "#6F7D92"
+          }
+        ],
+        "yesRedP2": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ]
+      }
+    },
+    "footer": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "Sources: Tenable findings (aligned to EA Tenable-scanned servers) x ea_network_asset_inventory (live EA) x asm_exposed_assets (ASM) x CISA KEV (index=cisa_kev) x CISA Vulnrichment SSVC (index=cisa_vuln) via TA-Vulnerability catalog | Tiers & clock: CISA BOD 26-04 Table 1 / Appendix A",
+        "fontColor": "#8B98AC",
+        "backgroundColor": "#0A0F1A",
+        "fontSize": "small"
+      }
+    },
+    "worklist_hosts": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_worklist_hosts"
+      },
+      "options": {
+        "majorColor": "#39C6D6",
+        "backgroundColor": "#101827",
+        "underLabel": "Assets in worklist",
+        "showSparkline": false,
+        "showTrend": false,
+        "majorFontSize": 28
+      }
+    },
+    "worklist_findings": {
+      "type": "splunk.singlevalue",
+      "dataSources": {
+        "primary": "ds_worklist_findings"
+      },
+      "options": {
+        "majorColor": "#FFA23E",
+        "backgroundColor": "#101827",
+        "underLabel": "Findings (host x CVE)",
+        "showSparkline": false,
+        "showTrend": false,
+        "majorFontSize": 28
+      }
+    },
+    "noedr_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_ea_noedr_table"
+      },
+      "title": "2.3 No endpoint security - no EDR telemetry, no way to detect or contain",
+      "description": "No CrowdStrike (EA source 05). Sorted by risk: P1 + exposed first. Fix = deploy EDR. Follows the global filters: Priority Tier, Exposed, Asset Priority, EDR, In KEV.",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 10,
+        "drilldown": "none",
+        "showRowNumbers": true,
+        "columnFormat": {
+          "P1 Findings": {
+            "rowColors": "> table | seriesByName(\"P1 Findings\") | rangeValue(p1Range)"
+          },
+          "Exposed": {
+            "rowColors": "> table | seriesByName(\"Exposed\") | matchValue(yesRedP2)"
+          },
+          "In CMDB": {
+            "rowColors": "> table | seriesByName(\"In CMDB\") | matchValue(noRed)"
+          },
+          "VA Scanned": {
+            "rowColors": "> table | seriesByName(\"VA Scanned\") | matchValue(noRed)"
+          },
+          "Risk": {
+            "rowColors": "> table | seriesByName(\"Risk\") | matchValue(riskColor)"
+          }
+        }
+      },
+      "context": {
+        "p1Range": [
+          {
+            "to": 1,
+            "value": "#6F7D92"
+          },
+          {
+            "from": 1,
+            "value": "#FF4D5E"
+          }
+        ],
+        "yesRed": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ],
+        "noRed": [
+          {
+            "match": "no",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "yes",
+            "value": "#2ECC8F"
+          }
+        ],
+        "riskColor": [
+          {
+            "match": "P1 + exposed",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "P1",
+            "value": "#FFA23E"
+          },
+          {
+            "match": "Exposed",
+            "value": "#FFD666"
+          },
+          {
+            "match": "Findings",
+            "value": "#39C6D6"
+          },
+          {
+            "match": "None",
+            "value": "#6F7D92"
+          }
+        ],
+        "yesRedP2": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ]
+      }
+    },
+    "part3_banner": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## PART 3 - AI Hunting & Forensic Triage (AITK Agent + Splunk MCP)\nPick a P1 + forensic host -> signals from web, host and network logs -> **Hunting** agent returns the triage verdict and whether to escalate a case",
+        "fontColor": "#0A0F1A",
+        "backgroundColor": "#39C6D6",
+        "fontSize": "default"
+      }
+    },
+    "hunt_ctx_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_hunt_ctx"
+      },
+      "title": "3.1 Target - what we know before hunting",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 1,
+        "drilldown": "none",
+        "columnFormat": {
+          "EDR": {
+            "rowColors": "> table | seriesByName(\"EDR\") | matchValue(noRed)"
+          },
+          "In CMDB": {
+            "rowColors": "> table | seriesByName(\"In CMDB\") | matchValue(noRed)"
+          },
+          "Forensic Triage": {
+            "rowColors": "> table | seriesByName(\"Forensic Triage\") | matchValue(yesRed)"
+          }
+        },
+        "wrap": true
+      },
+      "context": {
+        "noRed": [
+          {
+            "match": "no",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "yes",
+            "value": "#2ECC8F"
+          }
+        ],
+        "yesRed": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ]
+      }
+    },
+    "hunt_ai_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_hunt_ai"
+      },
+      "title": "3.3 AI agent triage report - ATT&CK hypothesis, evidence matrix, verdict",
+      "description": "Set 'Run AI agent' = Yes. The agent builds an ATT&CK attack-path hypothesis from KEV + Vulnrichment, tests it with CIM data-model hunt templates and returns the verdict, evidence matrix, gaps and leads.",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 5,
+        "drilldown": "none",
+        "wrap": true
+      }
+    },
+    "hunt_intel_table": {
+      "type": "splunk.table",
+      "dataSources": {
+        "primary": "ds_hunt_intel"
+      },
+      "title": "3.2 Threat intel for this host - CISA KEV + Vulnrichment + scanner (the agent's hunt hypothesis)",
+      "description": "Product, weakness (CWE), attack vector and port tell the agent where and what to hunt. KEV first.",
+      "options": {
+        "backgroundColor": "#0D1420",
+        "count": 6,
+        "drilldown": "none",
+        "wrap": true,
+        "columnFormat": {
+          "In KEV": {
+            "rowColors": "> table | seriesByName(\"In KEV\") | matchValue(yesRed)"
+          },
+          "CISA Forensic": {
+            "rowColors": "> table | seriesByName(\"CISA Forensic\") | matchValue(ftColor)"
+          }
+        }
+      },
+      "context": {
+        "yesRed": [
+          {
+            "match": "yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "no",
+            "value": "#6F7D92"
+          }
+        ],
+        "ftColor": [
+          {
+            "match": "Yes",
+            "value": "#FF4D5E"
+          },
+          {
+            "match": "No",
+            "value": "#6F7D92"
+          }
+        ]
+      }
+    }
+  },
+  "layout": {
+    "type": "absolute",
+    "globalInputs": [
+      "input_priority",
+      "input_sla",
+      "input_edr",
+      "input_kev",
+      "input_exposed",
+      "input_asset_priority",
+      "input_automatable",
+      "input_tech_impact",
+      "input_ransomware"
+    ],
+    "options": {
+      "width": 1440,
+      "height": 4110,
+      "backgroundColor": "#0A0F1A",
+      "display": "fit-to-width"
+    },
+    "structure": [
+      {
+        "item": "eyebrow",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 5,
+          "w": 1420,
+          "h": 22
+        }
+      },
+      {
+        "item": "main_title",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 27,
+          "w": 1420,
+          "h": 40
+        }
+      },
+      {
+        "item": "part1_banner",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 75,
+          "w": 1420,
+          "h": 58
+        }
+      },
+      {
+        "item": "kpi_findings",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 140,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_p1",
+        "type": "block",
+        "position": {
+          "x": 370,
+          "y": 140,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_p1_overdue",
+        "type": "block",
+        "position": {
+          "x": 730,
+          "y": 140,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_forensic",
+        "type": "block",
+        "position": {
+          "x": 1090,
+          "y": 140,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "tier_p1",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 260,
+          "w": 350,
+          "h": 115
+        }
+      },
+      {
+        "item": "tier_p2",
+        "type": "block",
+        "position": {
+          "x": 370,
+          "y": 260,
+          "w": 350,
+          "h": 115
+        }
+      },
+      {
+        "item": "tier_p3",
+        "type": "block",
+        "position": {
+          "x": 730,
+          "y": 260,
+          "w": 350,
+          "h": 115
+        }
+      },
+      {
+        "item": "tier_p4",
+        "type": "block",
+        "position": {
+          "x": 1090,
+          "y": 260,
+          "w": 340,
+          "h": 115
+        }
+      },
+      {
+        "item": "severity_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 385,
+          "w": 705,
+          "h": 250
+        }
+      },
+      {
+        "item": "sla_pie",
+        "type": "block",
+        "position": {
+          "x": 725,
+          "y": 385,
+          "w": 705,
+          "h": 250
+        }
+      },
+      {
+        "item": "worklist_title",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 645,
+          "w": 1050,
+          "h": 72
+        }
+      },
+      {
+        "item": "worklist",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 722,
+          "w": 1420,
+          "h": 620
+        }
+      },
+      {
+        "item": "part2_banner",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 1357,
+          "w": 1420,
+          "h": 58
+        }
+      },
+      {
+        "item": "kpi_ea_total",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 1422,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_ea_shadow",
+        "type": "block",
+        "position": {
+          "x": 370,
+          "y": 1422,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_ea_unscanned",
+        "type": "block",
+        "position": {
+          "x": 730,
+          "y": 1422,
+          "w": 350,
+          "h": 110
+        }
+      },
+      {
+        "item": "kpi_ea_noedr",
+        "type": "block",
+        "position": {
+          "x": 1090,
+          "y": 1422,
+          "w": 340,
+          "h": 110
+        }
+      },
+      {
+        "item": "shadow_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 1545,
+          "w": 1420,
+          "h": 330
+        }
+      },
+      {
+        "item": "unscanned_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 1885,
+          "w": 1420,
+          "h": 260
+        }
+      },
+      {
+        "item": "footer",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 4066,
+          "w": 1420,
+          "h": 30
+        }
+      },
+      {
+        "item": "worklist_hosts",
+        "type": "block",
+        "position": {
+          "x": 1070,
+          "y": 645,
+          "w": 175,
+          "h": 72
+        }
+      },
+      {
+        "item": "worklist_findings",
+        "type": "block",
+        "position": {
+          "x": 1255,
+          "y": 645,
+          "w": 175,
+          "h": 72
+        }
+      },
+      {
+        "item": "noedr_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 2155,
+          "w": 1420,
+          "h": 380
+        }
+      },
+      {
+        "item": "part3_banner",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 2545,
+          "w": 1420,
+          "h": 58
+        }
+      },
+      {
+        "item": "input_hunt_target",
+        "type": "input",
+        "position": {
+          "x": 450,
+          "y": 2611,
+          "w": 330,
+          "h": 100
+        }
+      },
+      {
+        "item": "input_hunt_run",
+        "type": "input",
+        "position": {
+          "x": 1130,
+          "y": 2611,
+          "w": 300,
+          "h": 100
+        }
+      },
+      {
+        "item": "hunt_ctx_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 2716,
+          "w": 1420,
+          "h": 220
+        }
+      },
+      {
+        "item": "hunt_ai_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 3256,
+          "w": 1420,
+          "h": 800
+        }
+      },
+      {
+        "item": "hunt_intel_table",
+        "type": "block",
+        "position": {
+          "x": 10,
+          "y": 2946,
+          "w": 1420,
+          "h": 300
+        }
+      },
+      {
+        "item": "input_hunt_pick",
+        "type": "input",
+        "position": {
+          "x": 10,
+          "y": 2611,
+          "w": 430,
+          "h": 100
+        }
+      },
+      {
+        "item": "input_hunt_time",
+        "type": "input",
+        "position": {
+          "x": 790,
+          "y": 2611,
+          "w": 330,
+          "h": 100
+        }
+      }
+    ]
+  }
+}
